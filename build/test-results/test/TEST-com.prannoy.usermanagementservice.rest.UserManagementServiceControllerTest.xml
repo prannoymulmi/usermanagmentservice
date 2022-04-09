@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.prannoy.usermanagementservice.rest.UserManagementServiceControllerTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2022-04-09T14:52:28" hostname="PMulmyLPOSX" time="0.744">
+  <properties/>
+  <testcase name="getUsersByUserNameOnUserNameFoundListOfUserAreReturned()" classname="com.prannoy.usermanagementservice.rest.UserManagementServiceControllerTest" time="0.711"/>
+  <testcase name="saveUserUnknownCountyCodeBadRequestExceptionIsThrown()" classname="com.prannoy.usermanagementservice.rest.UserManagementServiceControllerTest" time="0.006"/>
+  <testcase name="getUserOnUnknownUserIdAResourceNotFoundExceptionIsReturned()" classname="com.prannoy.usermanagementservice.rest.UserManagementServiceControllerTest" time="0.003"/>
+  <testcase name="getUsersByUserNameOnUserNameNotFoundResourceNotFoundExceptionIsReturned()" classname="com.prannoy.usermanagementservice.rest.UserManagementServiceControllerTest" time="0.002"/>
+  <testcase name="getUserOnCorrectUserIdAUserIsReturned()" classname="com.prannoy.usermanagementservice.rest.UserManagementServiceControllerTest" time="0.006"/>
+  <testcase name="saveUserHasAllInputsCorrectNoErrorsOccur()" classname="com.prannoy.usermanagementservice.rest.UserManagementServiceControllerTest" time="0.011"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
