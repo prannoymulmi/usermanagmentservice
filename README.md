@@ -13,14 +13,14 @@ When the application is started the post request can be sent using the swagger u
 [Swagger UI local link](http://localhost:8080/swagger-ui.html). It is important that the application to be started before to use
 swagger. A Screenshot of the Swagger UI can be seen below.
 
-![Swagger UI for the Rest API](./swagger.PNG)also possible to list the users and search for user names.
+![Swagger UI for the Rest API](./swagger.png)also possible to list the users and search for user names.
 
 ## CI/CD Design
 A CI/CD is also very crucial toward the development and release of the software. The CI/CD should allow to test and deploy
 the application in the shortest amount of time. Below in a design of how a CI/CI pipeline could be realized.
 
 
-![CI/CD concept](./CI_CD.PNG)
+![CI/CD concept](./CI_CD.png)
 
 The design principle is very simple and straight forward. The pipeline will be highly automated as possible,
 what this means is the pipeline will checkout, build test and deploy the application in the same pipeline as
