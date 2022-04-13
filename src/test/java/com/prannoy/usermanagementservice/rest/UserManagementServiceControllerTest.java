@@ -2,6 +2,7 @@ package com.prannoy.usermanagementservice.rest;
 
 import com.prannoy.usermanagementservice.persistence.entity.UserEntity;
 import com.prannoy.usermanagementservice.persistence.repository.UserRepository;
+import com.prannoy.usermanagementservice.rest.dto.UserPutRequestDTO;
 import com.prannoy.usermanagementservice.rest.dto.UserRequestDTO;
 import com.prannoy.usermanagementservice.rest.exception.BadRequestException;
 import com.prannoy.usermanagementservice.rest.exception.ResourceNotFoundException;
@@ -65,7 +66,7 @@ class UserManagementServiceControllerTest {
         final var result = userManagementServiceController.getUser(UUID.randomUUID());
         // then
         assertNotNull(result);
-        assertEquals(userEntity.getUserId(), result.getId());
+        assertEquals(userEntity.getUserId(), result.getUserId());
         assertEquals(userEntity.getUserName(), result.getUserName());
         assertEquals(userEntity.getCountryCode(), result.getCountryCode());
         assertEquals(userEntity.getCity(), result.getCity());
@@ -154,4 +155,101 @@ class UserManagementServiceControllerTest {
         // when
         assertThrows(BadRequestException.class, () -> userManagementServiceController.saveUser(user));
     }
+
+    @Test
+    void deleteUserWithExistingUserDeleteIsDone() {
+        //given
+        Mockito
+                .when(mockUserRepository.findById(any(UUID.class)))
+                .thenReturn(Optional.of(UserEntity.builder().build()));
+        final var userManagementServiceController = new UserManagementServiceController(mockUserRepository);
+        final var userId = UUID.randomUUID();
+
+        // when
+        userManagementServiceController.deleteUser(userId);
+
+        // then
+        verify(mockUserRepository, times(1)).findById(userId);
+        verify(mockUserRepository, times(1)).deleteById(userId);
+    }
+
+    @Test
+    void deleteUserWithNonExistingUserDeleteIsNotDone() {
+        //given
+        Mockito
+                .when(mockUserRepository.findById(any(UUID.class)))
+                .thenReturn(Optional.empty());
+        final var userManagementServiceController = new UserManagementServiceController(mockUserRepository);
+        final var userId = UUID.randomUUID();
+
+        // when
+        assertThrows(ResourceNotFoundException.class, () -> userManagementServiceController.deleteUser(userId));
+
+        // then
+        verify(mockUserRepository, times(1)).findById(userId);
+        verify(mockUserRepository, times(0)).deleteById(userId);
+    }
+
+    @Test
+    void updateUserWithExistingUserThenUserIsUpdated(){
+
+        // given
+        final var userId = UUID.randomUUID();
+
+        final var user = UserEntity
+                .builder()
+                .city(ANY_CITY)
+                .countryCode(INVALID_COUNTRY_CODE)
+                .userName(ANY_USER_NAME)
+                .userId(userId)
+                .build();
+
+        final var request = UserPutRequestDTO
+                .userPutRequestDtoBuilder()
+                .userId(userId)
+                .userName(ANY_USER_NAME)
+                .countryCode(VALID_COUNTRY_CODE)
+                .build();
+
+        Mockito
+                .when(mockUserRepository.findById(any(UUID.class)))
+                .thenReturn(Optional.of(user));
+        final var userManagementServiceController = new UserManagementServiceController(mockUserRepository);
+
+        // when
+        userManagementServiceController.updateUser(request);
+
+        // then
+        verify(this.mockUserRepository, times(1)).save(any(UserEntity.class));
+        verify(this.mockUserRepository, times(1)).findById(any(UUID.class));
+    }
+
+
+    @Test
+    void updateUserWithNonExistingUserThenUserIsNotUpdated(){
+
+        // given
+        final var userId = UUID.randomUUID();
+
+
+        final var request = UserPutRequestDTO
+                .userPutRequestDtoBuilder()
+                .userId(userId)
+                .userName(ANY_USER_NAME)
+                .countryCode(VALID_COUNTRY_CODE)
+                .build();
+
+        Mockito
+                .when(mockUserRepository.findById(any(UUID.class)))
+                .thenReturn(Optional.empty());
+        final var userManagementServiceController = new UserManagementServiceController(mockUserRepository);
+
+        // when
+        assertThrows(ResourceNotFoundException.class , ()-> userManagementServiceController.updateUser(request));
+
+        // then
+        verify(this.mockUserRepository, times(1)).findById(any(UUID.class));
+        verify(this.mockUserRepository, times(0)).save(any(UserEntity.class));
+    }
+
 }

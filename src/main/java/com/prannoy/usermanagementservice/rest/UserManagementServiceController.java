@@ -5,6 +5,7 @@ import com.prannoy.usermanagementservice.persistence.entity.UserEntity;
 import com.prannoy.usermanagementservice.persistence.repository.UserRepository;
 import com.prannoy.usermanagementservice.rest.dto.ErrorDTO;
 import com.prannoy.usermanagementservice.rest.dto.UserIdDTO;
+import com.prannoy.usermanagementservice.rest.dto.UserPutRequestDTO;
 import com.prannoy.usermanagementservice.rest.dto.UserRequestDTO;
 import com.prannoy.usermanagementservice.rest.dto.UserResponseDTO;
 import com.prannoy.usermanagementservice.rest.exception.BadRequestException;
@@ -17,9 +18,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -64,6 +67,24 @@ public class UserManagementServiceController {
         return modelMapper.map(byId.orElseThrow(() -> new ResourceNotFoundException("The user with id is not found")), UserResponseDTO.class);
     }
 
+
+    @ApiResponse(
+            responseCode = "404",
+            description = "user with user Id not found",
+            content = {@Content(schema = @Schema(implementation = ErrorDTO.class))}
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "User deleted",
+            content = {@Content(schema = @Schema(implementation = UserResponseDTO.class))}
+    )
+    @DeleteMapping("{userId}")
+    public void deleteUser(@PathVariable("userId") UUID userId) {
+        this.userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User cannot be found"));
+        this.userRepository.deleteById(userId);
+    }
+
+
     @ApiResponse(
             responseCode = "404",
             description = "users with username not found",
@@ -99,10 +120,34 @@ public class UserManagementServiceController {
     @PostMapping("/save")
     public UserIdDTO saveUser(@RequestBody @Valid final UserRequestDTO user) {
         getCountryCodeOrThrowException(user);
+        final var userEntity = mapAndSave(user);
+        return UserIdDTO.builder().userId(userEntity.getUserId()).build();
+    }
+
+
+    @ApiResponse(
+            responseCode = "400",
+            description = "Validation Error or incompatible input",
+            content = {@Content(schema = @Schema(implementation = ErrorDTO.class))}
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "User updated in database",
+            content = {@Content(schema = @Schema(implementation = UserIdDTO.class))}
+    )
+
+    @PutMapping("/update")
+    public void updateUser(@RequestBody @Valid final UserPutRequestDTO userToBeUpdated) {
+        getCountryCodeOrThrowException(userToBeUpdated);
+        this.userRepository.findById(userToBeUpdated.getUserId()).orElseThrow(() -> new ResourceNotFoundException("user does not exist"));
+        mapAndSave(userToBeUpdated);
+    }
+
+    private UserEntity mapAndSave(UserRequestDTO user) {
         final var modelMapper = new ModelMapper();
         final var userEntity = modelMapper.map(user, UserEntity.class);
         userRepository.save(userEntity);
-        return UserIdDTO.builder().userId(userEntity.getUserId()).build();
+        return userEntity;
     }
 
     private String getCountryCodeOrThrowException(UserRequestDTO user) {

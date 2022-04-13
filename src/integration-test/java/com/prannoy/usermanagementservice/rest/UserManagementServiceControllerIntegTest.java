@@ -4,19 +4,21 @@ import com.prannoy.usermanagementservice.persistence.entity.UserEntity;
 import com.prannoy.usermanagementservice.persistence.repository.UserRepository;
 import com.prannoy.usermanagementservice.rest.dto.ErrorDTO;
 import com.prannoy.usermanagementservice.rest.dto.UserIdDTO;
+import com.prannoy.usermanagementservice.rest.dto.UserPutRequestDTO;
 import com.prannoy.usermanagementservice.rest.dto.UserRequestDTO;
 import com.prannoy.usermanagementservice.rest.dto.UserResponseDTO;
+import org.apache.http.client.utils.URIBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
-import org.apache.http.client.utils.URIBuilder;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -146,7 +148,7 @@ public class UserManagementServiceControllerIntegTest {
 
         //Then
         assertTrue(result.getStatusCode().is2xxSuccessful());
-        assertEquals(this.user.getUserId(), result.getBody().getId());
+        assertEquals(this.user.getUserId(), result.getBody().getUserId());
     }
 
     @Test
@@ -195,6 +197,117 @@ public class UserManagementServiceControllerIntegTest {
         assertEquals(expectedMsg, result.getBody().getErrorTxt());
     }
 
+    @Test
+    void deleteUserWhenExistingUserIdIsSupplied200IsReturned() throws Exception {
+
+        // given
+        final var toBeDeletedUser = userRepository.save(UserEntity
+                .builder()
+                .userName("test_name")
+                .postalCode(ANY_POSTAL_CODE)
+                .countryCode(GP_COUNTRY_CODE)
+                .street(ANY_STREET)
+                .build());
+
+        final var url = String.format("/v1/users/%s", toBeDeletedUser.getUserId());
+        // When
+        final var request = createDeleteRequest(url);
+        final var result = this.restTemplate.exchange(request, String.class);
+
+        //Then
+        assertTrue(result.getStatusCode().is2xxSuccessful());
+    }
+
+    @Test
+    void deleteUserWhenNonExistingUserIdIsSuppliedResourceNotFoundIsReturned() throws Exception {
+
+        // given
+        final var url = String.format("/v1/users/%s", UUID.randomUUID());
+        final var expectedMsg = "User cannot be found";
+        // When
+        final var request = createDeleteRequest(url);
+        final var result = this.restTemplate.exchange(request, ErrorDTO.class);
+
+        //Then
+        assertTrue(result.getStatusCode().is4xxClientError());
+        assertEquals(expectedMsg, result.getBody().getErrorTxt());
+    }
+
+    @Test
+    void patchUserWithExistingUserInputReturns200AndUserId() {
+        //given
+        final var changedUserName = "changedUserName";
+        var user = UserPutRequestDTO
+                .userPutRequestDtoBuilder()
+                .userId(this.user.getUserId())
+                .userName(changedUserName)
+                .postalCode(ANY_POSTAL_CODE)
+                .countryCode(COUNTRY_CODE)
+                .street(ANY_STREET)
+                .build();
+
+        //when
+        RequestEntity<UserRequestDTO> request = createPutRequest(user, "/v1/users/update");
+        final var result = this.restTemplate.exchange(request, Void.class);
+
+        //then
+        final var changedUser = this.userRepository.findById(this.user.getUserId()).get();
+        assertTrue(result.getStatusCode().is2xxSuccessful());
+        assertEquals(changedUserName, changedUser.getUserName());
+    }
+
+    @Test
+    void patchUserWithExistingUserAndInvalidCountryCodeInputReturns200AndUserId() {
+        //given
+        final var changedUserName = "changedUserName";
+        var user = UserPutRequestDTO
+                .userPutRequestDtoBuilder()
+                .userId(this.user.getUserId())
+                .userName(changedUserName)
+                .postalCode(ANY_POSTAL_CODE)
+                .countryCode("INVALID")
+                .street(ANY_STREET)
+                .build();
+
+        var expectedMsg= "INVALID as country code not valid";
+        //when
+        RequestEntity<UserRequestDTO> request = createPutRequest(user, "/v1/users/update");
+        final var result = this.restTemplate.exchange(request, ErrorDTO.class);
+
+        //then
+        assertTrue(result.getStatusCode().is4xxClientError());
+        assertEquals(HttpStatus.BAD_REQUEST.value(), result.getStatusCode().value());
+        assertEquals(expectedMsg, result.getBody().getErrorTxt());
+    }
+
+
+    @Test
+    void patchUserWithNonExsistingUserReturnsResourceNotFoundAndUserId() {
+        //given
+        final var changedUserName = "changedUserName";
+        var user = UserPutRequestDTO
+                .userPutRequestDtoBuilder()
+                .userId(UUID.randomUUID())
+                .userName(changedUserName)
+                .build();
+
+        //when
+        RequestEntity<UserRequestDTO> request = createPutRequest(user, "/v1/users/update");
+        final var result = this.restTemplate.exchange(request, ErrorDTO.class);
+
+        //then
+        assertTrue(result.getStatusCode().is4xxClientError());
+    }
+
+
+
+    private RequestEntity<UserRequestDTO> createPutRequest(UserRequestDTO req, String url) {
+        return RequestEntity
+                .put(URI.create(String.format("http://localhost:%s%s", this.port, url)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(req, UserRequestDTO.class);
+    }
+
     private RequestEntity<Void> createGetRequest(String url) throws URISyntaxException {
         final var uri = new URIBuilder()
                 .setScheme("http")
@@ -204,5 +317,16 @@ public class UserManagementServiceControllerIntegTest {
                 .build();
 
         return RequestEntity.get(uri).build();
+    }
+
+    private RequestEntity<Void> createDeleteRequest(String url) throws URISyntaxException {
+        final var uri = new URIBuilder()
+                .setScheme("http")
+                .setHost("localhost")
+                .setPort(this.port)
+                .setPath(url)
+                .build();
+
+        return RequestEntity.delete(uri).build();
     }
 }

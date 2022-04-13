@@ -35,5 +35,6 @@ public class UserRequestDTO {
 
     private String postalCode;
 
+    @NotNull
     private String countryCode;
 }
